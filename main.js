@@ -125,6 +125,7 @@ function main() {
           console.log(round);
           let winInfo = checkIfGameOver(cellNum);
 
+          //update winner object and UI
           if (gameOver == true) {
             //increase score
             if (isX) {
@@ -135,11 +136,37 @@ function main() {
               player1ScoreUI.lastChild.textContent = player1.getNumWins();
             } else {
               player2.increaseScore();
-              player2ScoreUI.lastChild.style.textContent = player2.getNumWins();
+              player2ScoreUI.lastChild.textContent = player2.getNumWins();
             }
-            //update winner object and UI
+
             //display a element congratuating user for winning and the row, column, or diagonal in which the user won
+            if (winInfo.getRow() != 0) {
+              if (winInfo.getRow() == 1) {
+                rowWinner(1);
+               
+              } else if (winInfo.getRow() == 2) {
+                rowWinner(4);
+              } else {
+                rowWinner(7);
+              }
+            } else if (winInfo.getCol() != 0) {
+              if (winInfo.getCol() == 1) {
+                columnWinner(1);
+              } else if (winInfo.getCol() == 2) {
+                columnWinner(2);
+              } else {
+                columnWinner(3);
+              }
+            } else if (winInfo.getDiagonal() != 0) {
+              if (winInfo.getDiagonal() == 1) {
+                diagonal1Winner(1);
+              } else {
+                diagonal2Winner(3);
+              }
+            }
+
             //reset UI board
+
             //clear array
           } else if (checkTie(cellNum) == true) {
             //update tie score UI and object
@@ -152,9 +179,36 @@ function main() {
       }
     };
 
-    function getCurrentMarker() {
-      return isX;
+    function rowWinner(startingCell) {
+      for (let i = startingCell; i <= (startingCell+2); i++) {
+        changeCellBackgroundColor(i);
+      }
     }
+
+    function columnWinner(startingCell){
+      for (let i = startingCell; i <= (startingCell+6); i+=3) {
+        changeCellBackgroundColor(i);
+      }
+    }
+
+    function diagonal1Winner(startingCell) {
+      for(let i = startingCell; i <= 9; i+=4){
+        changeCellBackgroundColor(i);
+      }
+    }
+
+    function diagonal2Winner(startingCell) {
+      for(let i = startingCell; i <= 7; i+=2){
+        changeCellBackgroundColor(i);
+      }
+    }
+
+    function changeCellBackgroundColor(cellNumber){
+      const currCellNumberId = "cell" + cellNumber;
+      let currCell = document.getElementById(currCellNumberId);
+      currCell.classList.add("winner");
+    }
+    
 
     function checkTie(cellNum) {
       const arrayOfCells = GameBoard.getBoardArray();
@@ -166,9 +220,9 @@ function main() {
     }
 
     function winningCellsInfo() {
-      let row;
-      let column;
-      let diagonal;
+      let row = 0;
+      let column = 0;
+      let diagonal = 0;
 
       const setRow = (winningRow) => {
         row = winningRow;
@@ -198,7 +252,7 @@ function main() {
           return winInfo;
         } else {
           if (cellNum == 1) {
-            if (checkColumn(4, arrayOfCells) == true) {
+            if (checkColumn(3, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(1);
@@ -209,18 +263,14 @@ function main() {
               return winInfo;
             }
           } else if (cellNum == 2) {
-            if (checkColumn(5, arrayOfCells) == true) {
+            if (checkColumn(4, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(2);
               return winInfo;
-            } else if (checkDiagonals(3, arrayOfCells) == true) {
-              gameOver = true;
-              winInfo.setDiagonal(1);
-              return winInfo;
             }
           } else if (cellNum == 3) {
-            if (checkColumn(6, arrayOfCells) == true) {
+            if (checkColumn(5, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(3);
@@ -240,14 +290,14 @@ function main() {
           return winInfo;
         } else {
           if (cellNum == 4) {
-            if (checkColumn(4, arrayOfCells)) {
+            if (checkColumn(3, arrayOfCells)) {
               //column win
               gameOver = true;
               winInfo.setColumn(1);
               return winInfo;
             }
           } else if (cellNum == 5) {
-            if (checkColumn(5, arrayOfCells) == true) {
+            if (checkColumn(4, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(2);
@@ -262,7 +312,7 @@ function main() {
               return winInfo;
             }
           } else if (cellNum == 6) {
-            if (checkColumn(6, arrayOfCells) == true) {
+            if (checkColumn(5, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(3);
@@ -279,7 +329,7 @@ function main() {
           return winInfo;
         } else {
           if (cellNum == 7) {
-            if (checkColumn(4, arrayOfCells) == true) {
+            if (checkColumn(3, arrayOfCells) == true) {
               //column win
               gameOver = true;
               winInfo.setColumn(1);
@@ -290,35 +340,35 @@ function main() {
               return winInfo;
             }
           } else if (cellNum == 8) {
-            if (checkColumn(5, arrayOfCells) == true) {
+            if (checkColumn(4, arrayOfCells) == true) {
               gameOver = true;
               winInfo.setColumn(2);
               return winInfo;
             }
           } else if (cellNum == 9) {
-            if (checkColumn(6, arrayOfCells) == true) {
+            if (checkColumn(5, arrayOfCells) == true) {
               gameOver = true;
               winInfo.setColumn(3);
               return winInfo;
             } else if (checkDiagonals(1, arrayOfCells) == true) {
               gameOver = true;
-              winInfo.setColumn(1);
+              winInfo.setDiagonal(1);
               return winInfo;
             }
           }
         }
       }
-      return false;
+      gameOver = false;
     };
 
-    function checkRow(row, arrayOfCells) {
+    function checkRow(cell, arrayOfCells) {
       let difference = 1;
 
       if (
-        arrayOfCells[row - difference].getCellMarker() ==
-          arrayOfCells[row].getCellMarker() &&
-        arrayOfCells[row - difference].getCellMarker() ==
-          arrayOfCells[row + difference].getCellMarker()
+        arrayOfCells[cell - difference].getCellMarker() ==
+          arrayOfCells[cell].getCellMarker() &&
+        arrayOfCells[cell - difference].getCellMarker() ==
+          arrayOfCells[cell + difference].getCellMarker()
       ) {
         return true;
       } else {
@@ -326,14 +376,14 @@ function main() {
       }
     }
 
-    function checkColumn(col, arrayOfCells) {
+    function checkColumn(cell, arrayOfCells) {
       let difference = 3;
 
       if (
-        arrayOfCells[col - difference].getCellMarker() ==
-          arrayOfCells[col].getCellMarker() &&
-        arrayOfCells[col - difference].getCellMarker() ==
-          arrayOfCells[col + difference].getCellMarker()
+        arrayOfCells[cell - difference].getCellMarker() ==
+          arrayOfCells[cell].getCellMarker() &&
+        arrayOfCells[cell - difference].getCellMarker() ==
+          arrayOfCells[cell + difference].getCellMarker()
       ) {
         return true;
       } else {

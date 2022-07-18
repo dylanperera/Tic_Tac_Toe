@@ -158,3 +158,27 @@ label[for = "playerNameInput1"], [for = "playerNameInput2"], [for = "computerLev
     font-family: 'Oswald', sans-serif;
 }
 
+.winner{
+    background-color: #9fff9c;
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
+	transform: scale(1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+	}
+
+	70% {
+		transform: scale(1);
+        background-color: rgba(0, 0, 0, 0.7);
+		box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+	}
+
+	100% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+	}
+}
