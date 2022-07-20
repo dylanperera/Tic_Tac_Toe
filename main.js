@@ -3,6 +3,7 @@ main();
 function main() {
   let GameBoard = (function () {
     let gameBoardArray = [];
+    let openSpotsArray = ["", "", "", "", "", "", "", "", ""];
 
     //function to populate Array
     const populateBoard = function () {
@@ -71,7 +72,13 @@ function main() {
     };
 
     //call populateBoard, setUpDisplay
-    return { populateBoard, setUpDisplay, getBoardArray, clearBoard };
+    return {
+      populateBoard,
+      setUpDisplay,
+      getBoardArray,
+      clearBoard,
+      openSpotsArray,
+    };
   })();
 
   //module
@@ -86,10 +93,16 @@ function main() {
 
     //private method to check if legal move
     const isLegal = (cellNum) => {
+      console.log(cellNum - 1);
       return GameBoard.getBoardArray()[cellNum - 1].checkIfCellFree();
     };
 
-    const placeMarker = (originalCellNum, player1, player2) => {
+    function placeMarkerHelperFunction(
+      originalCellNum,
+      player1,
+      player2,
+      isComputer
+    ) {
       let cellNum = Array.from(originalCellNum);
       let player1ScoreUI = document.getElementById("player1Score");
       let player2ScoreUI =
@@ -128,13 +141,15 @@ function main() {
           currentUICell.appendChild(oImage);
         }
 
+        isX = !isX;
+
         if (round > 2) {
           let winInfo = checkIfGameOver(cellNum);
 
           //update winner object and UI
           if (gameOver == true) {
             //increase score
-            if (isX) {
+            if (!isX) {
               //x is the winner
               player1.increaseScore();
               player1ScoreUI.lastChild.textContent = player1.getNumWins();
@@ -168,22 +183,176 @@ function main() {
               }
             }
 
+            for (let i = 0; i < 9; i++) {
+              GameBoard.openSpotsArray[i] = "";
+            }
+
+            player1ScoreUI.firstChild.style.color = "red";
+            player1ScoreUI.lastChild.style.color = "red";
+            player2ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
+            player2ScoreUI.lastChild.style.color = "rgba(94, 90, 90, 0.6)";
+
             displayWinner(isX, player1, player2, false);
+            isX = true;
 
             GameBoard.clearBoard();
           } else if (checkTie() == true) {
             //update tie score UI and object
             let tieUI = document.getElementById("tie");
-            tieUI.lastChild.textContent = parseInt(tieUI.lastChild.textContent)+1;
+            tieUI.lastChild.textContent =
+              parseInt(tieUI.lastChild.textContent) + 1;
+
+            for (let i = 0; i < 9; i++) {
+              GameBoard.openSpotsArray[i] = "";
+            }
+
+            player1ScoreUI.firstChild.style.color = "red";
+            player1ScoreUI.lastChild.style.color = "red";
+            player2ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
+            player2ScoreUI.lastChild.style.color = "rgba(94, 90, 90, 0.6)";
+
             //clear array
             displayWinner(isX, player1, player2, true);
+
+            isX = true;
+
             GameBoard.clearBoard();
           }
         }
+      }
+    }
 
-        isX = !isX;
+    const placeMarker = (originalCellNum, player1, player2, isComputer) => {
+      if (isComputer) {
+
+        placeMarkerHelperFunction(
+          originalCellNum,
+          player1,
+          player2,
+          isComputer
+        );
+        originalCellNum = Array.from(originalCellNum);
+        originalCellNum = parseInt(originalCellNum[4]);
+        GameBoard.openSpotsArray[originalCellNum - 1] = "X";
+
+        if (
+          checkArrayFull(GameBoard.openSpotsArray) == null &&
+          gameOver == false
+        ) {
+          //setTimer function for certain amount of seconds, so that the computers response doesnt seem simultaneous
+          setTimeout(() => {
+            //set up code to execute minimax function
+            console.log("HERLL");
+            let bestScore = -Infinity;
+            let bestMove;
+            for (let i = 0; i < 9; i++) {
+              if (GameBoard.openSpotsArray[i] == "") {
+                GameBoard.openSpotsArray[i] = "O";
+                let score = minimax(GameBoard.openSpotsArray, 0, false);
+                if (score > bestScore) {
+                  bestScore = score;
+                  console.log(bestScore);
+                  bestMove = i;
+                }
+                GameBoard.openSpotsArray[i] = "";
+              }
+            }
+
+            GameBoard.openSpotsArray[bestMove] = "O";
+            bestMove += 1;
+            bestMove = "cell" + bestMove;
+
+            //use bestMove
+            placeMarkerHelperFunction(bestMove, player1, player2, isComputer);
+          }, 500);
+        }
+
+        //run the same code as above but place a circle instead
+        //placeMarkerHelperFunction(originalCellNum, player1, player2);
+      } else {
+        placeMarkerHelperFunction(
+          originalCellNum,
+          player1,
+          player2,
+          isComputer
+        );
       }
     };
+
+    let scoreTable = {
+      X: -10,
+      O: 10,
+      tie: 0,
+    };
+
+    function minimax(array, depth, isMaximizing) {
+      //base case
+      let scores = checkArrayFull(array);
+      if (scores != null) {
+        return scoreTable[scores];
+      } else {
+        //Computers turn
+        if (isMaximizing) {
+          let bestScore = -Infinity;
+          for (let i = 0; i < 9; i++) {
+            if (array[i] == "") {
+              array[i] = "O";
+              let score = minimax(array, depth + 1, false);
+              bestScore = Math.max(score, bestScore);
+              GameBoard.openSpotsArray[i] = "";
+            }
+          }
+          return bestScore;
+        } else if (!isMaximizing) {
+          //users turn
+          let bestScore = Infinity;
+          for (let i = 0; i < 9; i++) {
+            if (array[i] == "") {
+              array[i] = "X";
+              let score = minimax(array, depth + 1, true);
+              bestScore = Math.min(score, bestScore);
+              GameBoard.openSpotsArray[i] = "";
+            }
+          }
+          return bestScore;
+        }
+      }
+    }
+
+    //check if array is filled
+    function checkArrayFull(array) {
+      //base case
+      let counter = 0;
+      for (let i = 0; i < 9; i++) {
+        if (array[i] != "") {
+          counter++;
+        }
+      }
+
+      if (counter == 9) {
+        if (
+          (array[0] == array[1] && array[0] == array[2]) ||
+          (array[0] == array[3] && array[0] == array[6]) ||
+          (array[0] == array[4] && array[0] == array[8])
+        ) {
+          return array[0];
+        } else if (array[1] == array[4] && array[1] == array[7]) {
+          return array[1];
+        } else if (
+          (array[2] == array[5] && array[2] == array[8]) ||
+          (array[2] == array[4] && array[2] == array[6])
+        ) {
+          return array[2];
+        } else if (array[3] == array[4] && array[3] == array[5]) {
+          return array[3];
+        } else if (array[6] == array[7] && array[6] == array[8]) {
+          return array[6];
+        } else {
+          return "tie";
+        }
+      }
+      return null;
+    }
 
     function rowWinner(startingCell) {
       for (let i = startingCell; i <= startingCell + 2; i++) {
@@ -239,7 +408,7 @@ function main() {
         winner = document.createElement("h1");
         winner.textContent = "Winner: ";
         winner.textContent +=
-          isX == true ? player1.getName() : player2.getName();
+          isX == false ? player1.getName() : player2.getName();
         winner.classList.add("winnerText");
         body.appendChild(winner);
       }
@@ -603,7 +772,7 @@ function createDisplay(placeMarkerFunction) {
       background.style.backgroundColor = "black";
     };
 
-    const addBoard = function () {
+    const addBoard = function (isComputer) {
       //Remove modal
       const optionsModal = document.querySelector("body>div");
       body.removeChild(optionsModal);
@@ -618,7 +787,7 @@ function createDisplay(placeMarkerFunction) {
         currentCell.classList.add("cellProperties");
 
         currentCell.addEventListener("click", () => {
-          placeMarkerFunction(currentCell.id, player1, player2);
+          placeMarkerFunction(currentCell.id, player1, player2, isComputer);
         });
 
         container.appendChild(currentCell);
@@ -658,7 +827,7 @@ function createDisplay(placeMarkerFunction) {
         //Start game
         button.addEventListener("click", () => {
           changeBackground();
-          addBoard();
+          addBoard(false);
 
           player1 = createPlayer();
           if (player1Object.playerNameInput.value != "") {
@@ -687,7 +856,7 @@ function createDisplay(placeMarkerFunction) {
         //Start game
         button.addEventListener("click", () => {
           changeBackground();
-          addBoard();
+          addBoard(true);
 
           player1 = createPlayer();
           if (player1Object.playerNameInput.value != "") {
