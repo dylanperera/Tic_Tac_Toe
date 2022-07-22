@@ -57,8 +57,8 @@ function main() {
     }
 
     //factory function to set UI up
-    const setUpDisplay = function (placeMarkerFunction) {
-      let uiDisplay = createDisplay(placeMarkerFunction);
+    const setUpDisplay = function (placeMarkerFunction, gamePlayObject) {
+      let uiDisplay = createDisplay(placeMarkerFunction, gamePlayObject);
       uiDisplay.setUpButtons();
       let player1 = uiDisplay.player1;
       let player2 = uiDisplay.player2;
@@ -85,11 +85,20 @@ function main() {
   const gamePlay = (function () {
     let round = 0;
 
+    let level;
+
+    let computerRound = 0;
+
     //variable to keep track of if there are any winners
     let gameOver = false;
 
     //variable to keep track of who placed the last item
     let isX = true;
+
+    const setLevel = (difficulty) => {
+      level = difficulty;
+    };
+    const getLevel = () => level;
 
     //private method to check if legal move
     const isLegal = (cellNum) => {
@@ -115,12 +124,11 @@ function main() {
         GameBoard.getBoardArray()[cellNum - 1].setIsFreeToFalse();
         let marker = isX ? "X" : "O";
         GameBoard.getBoardArray()[cellNum - 1].setMarkerPlaced(marker);
-        if(isX && isComputer){
+        if (isX && isComputer) {
           GameBoard.openSpotsArray[cellNum - 1] = "X";
-        } else if (!isX && isComputer){
+        } else if (!isX && isComputer) {
           GameBoard.openSpotsArray[cellNum - 1] = "O";
         }
-
 
         if (isX) {
           player1ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
@@ -145,6 +153,7 @@ function main() {
           let oImage = document.createElement("img");
           oImage.src = "images/circle.png";
           currentUICell.appendChild(oImage);
+          computerRound++;
         }
 
         isX = !isX;
@@ -198,8 +207,9 @@ function main() {
             player2ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
             player2ScoreUI.lastChild.style.color = "rgba(94, 90, 90, 0.6)";
 
-            displayWinner(isX, player1, player2, false);
+            displayWinner(isX, player1, player2, false, isComputer);
             isX = true;
+            computerRound = 0;
 
             GameBoard.clearBoard();
           } else if (checkTie() == true) {
@@ -213,8 +223,10 @@ function main() {
             player2ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
             player2ScoreUI.lastChild.style.color = "rgba(94, 90, 90, 0.6)";
 
+            computerRound = 0;
+
             //clear array
-            displayWinner(isX, player1, player2, true);
+            displayWinner(isX, player1, player2, true, isComputer);
 
             isX = true;
 
@@ -224,6 +236,9 @@ function main() {
             }
           }
         }
+        return true;
+      } else {
+        return false;
       }
     }
 
@@ -251,46 +266,38 @@ function main() {
             player2,
             isComputer
           );
-           
         }
 
         if (
-          checkArrayFull(GameBoard.openSpotsArray) == null &&
           gameOver == false &&
           player2ScoreUI.firstChild.style.color == "blue"
         ) {
-          //setTimer function for certain amount of seconds, so that the computers response doesnt seem simultaneous
-          setTimeout(() => {
-            //set up code to execute minimax function
-            let bestScore = -Infinity;
-            let bestMove;
-            for (let i = 0; i < 9; i++) {
-              if (GameBoard.openSpotsArray[i] == "") {
-                GameBoard.openSpotsArray[i] = "O";
-                let score = minimax(GameBoard.openSpotsArray, 0, false);
-                if (score > bestScore) {
-                  bestScore = score;
-                  bestMove = i;
-                }
-                GameBoard.openSpotsArray[i] = "";
-              }
+          if (level == "Easy") {
+            //randomized placement
+            generateRandomMarker(player1, player2, isComputer);
+          } else if (level == "Medium") {
+            //randomize 4 rounds then play
+            if (computerRound < 2) {
+              generateRandomMarker(player1, player2, isComputer);
+            } else {
+              //call function to set up minimax
+              callMinimaxAlgorithm(player1, player2, isComputer);
             }
-
-            GameBoard.openSpotsArray[bestMove] = "O";
-            bestMove += 1;
-            bestMove = "cell" + bestMove;
-
-            //use bestMove
-            placeMarkerHelperFunction(bestMove, player1, player2, isComputer);
-
-            //add event listener back
-          }, 1000);
+          } else if (level == "Hard") {
+            //randomiz 2 rounds (use % to calculate current round) then play
+            if (computerRound < 1) {
+              generateRandomMarker(player1, player2, isComputer);
+            } else {
+              //call function to set up minimax
+              callMinimaxAlgorithm(player1, player2, isComputer);
+            }
+          } else if (level == "Unbeatable") {
+            //call function to set up minimax
+            callMinimaxAlgorithm(player1, player2, isComputer);
+          }
         }
 
         console.log(GameBoard.openSpotsArray);
-
-        //run the same code as above but place a circle instead
-        //placeMarkerHelperFunction(originalCellNum, player1, player2);
       } else {
         placeMarkerHelperFunction(
           originalCellNum,
@@ -300,6 +307,60 @@ function main() {
         );
       }
     };
+
+    function generateRandomMarker(player1, player2, isComputer) {
+      setTimeout(() => {
+        let randomNumber = Math.round(Math.random() * 8) + 1;
+
+        randomNumber = "cell" + randomNumber;
+        let newMarker = placeMarkerHelperFunction(
+          randomNumber,
+          player1,
+          player2,
+          isComputer
+        );
+
+        while (newMarker == false) {
+          randomNumber = Math.round(Math.random() * 8) + 1;
+          randomNumber = "cell" + randomNumber;
+          newMarker = placeMarkerHelperFunction(
+            randomNumber,
+            player1,
+            player2,
+            isComputer
+          );
+        }
+      }, 500);
+    }
+
+    function callMinimaxAlgorithm(player1, player2, isComputer) {
+      //setTimer function for certain amount of seconds, so that the computers response doesnt seem simultaneous
+      setTimeout(() => {
+        //set up code to execute minimax function
+        let bestScore = -Infinity;
+        let bestMove;
+        for (let i = 0; i < 9; i++) {
+          if (GameBoard.openSpotsArray[i] == "") {
+            GameBoard.openSpotsArray[i] = "O";
+            let score = minimax(GameBoard.openSpotsArray, 0, false);
+            if (score > bestScore) {
+              bestScore = score;
+              bestMove = i;
+            }
+            GameBoard.openSpotsArray[i] = "";
+          }
+        }
+
+        GameBoard.openSpotsArray[bestMove] = "O";
+        bestMove += 1;
+        bestMove = "cell" + bestMove;
+
+        //use bestMove
+        placeMarkerHelperFunction(bestMove, player1, player2, isComputer);
+
+        //add event listener back
+      }, 500);
+    }
 
     let scoreTable = {
       X: -10,
@@ -406,7 +467,7 @@ function main() {
       currCell.classList.add("winner");
     }
 
-    function displayWinner(isX, player1, player2, tie) {
+    function displayWinner(isX, player1, player2, tie, isComputer) {
       let keepPlaying = false;
       //shade background
       let shadedBackground = document.createElement("div");
@@ -452,8 +513,7 @@ function main() {
       let player1PlayAgainButton = document.createElement("button");
       player1PlayAgainButton.textContent = "Yes";
       player1PlayAgainButton.addEventListener("click", () => {
-        if (p2Yes == true) {
-          //remove modal
+        if (isComputer) {
           body.removeChild(modal);
           //remove background
           body.removeChild(shadedBackground);
@@ -477,8 +537,34 @@ function main() {
             cell.textContent = "";
           }
         } else {
-          p1Yes = true;
-          player1PlayAgainButton.style.backgroundColor = "green";
+          if (p2Yes == true) {
+            //remove modal
+            body.removeChild(modal);
+            //remove background
+            body.removeChild(shadedBackground);
+
+            //remove winner text
+            if (tie == true) {
+              body.removeChild(tieUI);
+            } else {
+              body.removeChild(winner);
+            }
+
+            //return true -> which will mean to clear the screen and keep scores
+            keepPlaying = true;
+            gameOver = false;
+
+            for (let i = 1; i <= 9; i++) {
+              let currCellId = "cell" + i;
+              let cell = document.getElementById(currCellId);
+
+              cell.classList.remove("winner");
+              cell.textContent = "";
+            }
+          } else {
+            p1Yes = true;
+            player1PlayAgainButton.style.backgroundColor = "green";
+          }
         }
       });
       player1PlayAgainButton.classList.add("playButtons");
@@ -493,58 +579,59 @@ function main() {
       player1Options.appendChild(player1PlayAgainButton);
       player1Options.appendChild(player1StopPlayingButton);
       player1Options.classList.add("playerOptions");
-
-      //Player 2
-      let player2Options = document.createElement("div");
-      let player2OptionsName = document.createElement("h4");
-      player2OptionsName.textContent = player2.getName();
-      let player2PlayAgainButton = document.createElement("button");
-      player2PlayAgainButton.textContent = "Yes";
-      player2PlayAgainButton.addEventListener("click", () => {
-        if (p1Yes == true) {
-          //remove modal
-          body.removeChild(modal);
-          //remove background
-          body.removeChild(shadedBackground);
-
-          //remove winner text
-          if (tie == true) {
-            body.removeChild(tieUI);
-          } else {
-            body.removeChild(winner);
-          }
-
-          //return true -> which will mean to clear the screen and keep scores
-          keepPlaying = true;
-
-          gameOver = false;
-
-          for (let i = 1; i <= 9; i++) {
-            let currCellId = "cell" + i;
-            let cell = document.getElementById(currCellId);
-            cell.classList.remove("winner");
-            cell.textContent = "";
-          }
-        } else {
-          p2Yes = true;
-          player2PlayAgainButton.style.backgroundColor = "green";
-        }
-      });
-      player2PlayAgainButton.classList.add("playButtons");
-      let player2StopPlayingButton = document.createElement("button");
-      player2StopPlayingButton.addEventListener("click", () => {
-        window.location.reload();
-      });
-      player2StopPlayingButton.classList.add("playButtons");
-
-      player2StopPlayingButton.textContent = "No";
-      player2Options.appendChild(player2OptionsName);
-      player2Options.appendChild(player2PlayAgainButton);
-      player2Options.appendChild(player2StopPlayingButton);
-      player2Options.classList.add("playerOptions");
-
       playOptionsDiv.appendChild(player1Options);
-      playOptionsDiv.appendChild(player2Options);
+
+      if (!isComputer) {
+        //Player 2
+        let player2Options = document.createElement("div");
+        let player2OptionsName = document.createElement("h4");
+        player2OptionsName.textContent = player2.getName();
+        let player2PlayAgainButton = document.createElement("button");
+        player2PlayAgainButton.textContent = "Yes";
+        player2PlayAgainButton.addEventListener("click", () => {
+          if (p1Yes == true) {
+            //remove modal
+            body.removeChild(modal);
+            //remove background
+            body.removeChild(shadedBackground);
+
+            //remove winner text
+            if (tie == true) {
+              body.removeChild(tieUI);
+            } else {
+              body.removeChild(winner);
+            }
+
+            //return true -> which will mean to clear the screen and keep scores
+            keepPlaying = true;
+
+            gameOver = false;
+
+            for (let i = 1; i <= 9; i++) {
+              let currCellId = "cell" + i;
+              let cell = document.getElementById(currCellId);
+              cell.classList.remove("winner");
+              cell.textContent = "";
+            }
+          } else {
+            p2Yes = true;
+            player2PlayAgainButton.style.backgroundColor = "green";
+          }
+        });
+        player2PlayAgainButton.classList.add("playButtons");
+        let player2StopPlayingButton = document.createElement("button");
+        player2StopPlayingButton.addEventListener("click", () => {
+          window.location.reload();
+        });
+        player2StopPlayingButton.classList.add("playButtons");
+
+        player2StopPlayingButton.textContent = "No";
+        player2Options.appendChild(player2OptionsName);
+        player2Options.appendChild(player2PlayAgainButton);
+        player2Options.appendChild(player2StopPlayingButton);
+        player2Options.classList.add("playerOptions");
+        playOptionsDiv.appendChild(player2Options);
+      }
 
       modal.appendChild(playAgainText);
       modal.appendChild(playOptionsDiv);
@@ -756,15 +843,15 @@ function main() {
       return false;
     }
 
-    return { placeMarker };
+    return { placeMarker, getLevel, setLevel };
   })();
 
   //call objects
   GameBoard.populateBoard();
-  GameBoard.setUpDisplay(gamePlay.placeMarker);
+  GameBoard.setUpDisplay(gamePlay.placeMarker, gamePlay);
 }
 
-function createDisplay(placeMarker) {
+function createDisplay(placeMarker, gamePlayObject) {
   let setUpDisplay = (function () {
     let body = document.querySelector("body");
 
@@ -880,6 +967,10 @@ function createDisplay(placeMarker) {
 
         //Start game
         button.addEventListener("click", () => {
+          let computerDifficuly = document.getElementById("computerLevels");
+          console.log(computerDifficuly.value);
+          gamePlayObject.setLevel(computerDifficuly.value);
+
           changeBackground();
           addBoard(true);
 
@@ -992,7 +1083,8 @@ function createDisplay(placeMarker) {
         } else {
           if (isComputer === true) {
             currentDiv.id = "computerScore";
-            currentDivText.textContent = "Computer (O)";
+            currentDivText.textContent =
+              "AI " + gamePlayObject.getLevel() + " (O)";
           } else {
             currentDiv.id = "player2Score";
             currentDivText.textContent =
