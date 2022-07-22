@@ -93,7 +93,6 @@ function main() {
 
     //private method to check if legal move
     const isLegal = (cellNum) => {
-      console.log(cellNum - 1);
       return GameBoard.getBoardArray()[cellNum - 1].checkIfCellFree();
     };
 
@@ -111,10 +110,17 @@ function main() {
           : document.getElementById("player2Score");
 
       cellNum = cellNum[4];
+
       if (isLegal(cellNum) == true) {
         GameBoard.getBoardArray()[cellNum - 1].setIsFreeToFalse();
         let marker = isX ? "X" : "O";
         GameBoard.getBoardArray()[cellNum - 1].setMarkerPlaced(marker);
+        if(isX && isComputer){
+          GameBoard.openSpotsArray[cellNum - 1] = "X";
+        } else if (!isX && isComputer){
+          GameBoard.openSpotsArray[cellNum - 1] = "O";
+        }
+
 
         if (isX) {
           player1ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
@@ -202,10 +208,6 @@ function main() {
             tieUI.lastChild.textContent =
               parseInt(tieUI.lastChild.textContent) + 1;
 
-            for (let i = 0; i < 9; i++) {
-              GameBoard.openSpotsArray[i] = "";
-            }
-
             player1ScoreUI.firstChild.style.color = "red";
             player1ScoreUI.lastChild.style.color = "red";
             player2ScoreUI.firstChild.style.color = "rgba(94, 90, 90, 0.6)";
@@ -217,6 +219,9 @@ function main() {
             isX = true;
 
             GameBoard.clearBoard();
+            for (let i = 0; i < 9; i++) {
+              GameBoard.openSpotsArray[i] = "";
+            }
           }
         }
       }
@@ -224,25 +229,39 @@ function main() {
 
     const placeMarker = (originalCellNum, player1, player2, isComputer) => {
       if (isComputer) {
+        let player1ScoreUI = document.getElementById("player1Score");
+        let player2ScoreUI = document.getElementById("computerScore");
 
-        placeMarkerHelperFunction(
-          originalCellNum,
-          player1,
-          player2,
-          isComputer
-        );
-        originalCellNum = Array.from(originalCellNum);
-        originalCellNum = parseInt(originalCellNum[4]);
-        GameBoard.openSpotsArray[originalCellNum - 1] = "X";
+        if (round == 0) {
+          player1ScoreUI.firstChild.style.color = "red";
+          player1ScoreUI.lastChild.style.color = "red";
+          player2ScoreUI.firstChild.style.color = "blue";
+          player2ScoreUI.lastChild.style.color = "blue";
+        }
+
+        console.log(gameOver);
+
+        if (
+          player1ScoreUI.firstChild.style.color == "red" &&
+          checkArrayFull(GameBoard.openSpotsArray) == null
+        ) {
+          placeMarkerHelperFunction(
+            originalCellNum,
+            player1,
+            player2,
+            isComputer
+          );
+           
+        }
 
         if (
           checkArrayFull(GameBoard.openSpotsArray) == null &&
-          gameOver == false
+          gameOver == false &&
+          player2ScoreUI.firstChild.style.color == "blue"
         ) {
           //setTimer function for certain amount of seconds, so that the computers response doesnt seem simultaneous
           setTimeout(() => {
             //set up code to execute minimax function
-            console.log("HERLL");
             let bestScore = -Infinity;
             let bestMove;
             for (let i = 0; i < 9; i++) {
@@ -251,7 +270,6 @@ function main() {
                 let score = minimax(GameBoard.openSpotsArray, 0, false);
                 if (score > bestScore) {
                   bestScore = score;
-                  console.log(bestScore);
                   bestMove = i;
                 }
                 GameBoard.openSpotsArray[i] = "";
@@ -264,8 +282,12 @@ function main() {
 
             //use bestMove
             placeMarkerHelperFunction(bestMove, player1, player2, isComputer);
-          }, 500);
+
+            //add event listener back
+          }, 1000);
         }
+
+        console.log(GameBoard.openSpotsArray);
 
         //run the same code as above but place a circle instead
         //placeMarkerHelperFunction(originalCellNum, player1, player2);
@@ -297,19 +319,19 @@ function main() {
           for (let i = 0; i < 9; i++) {
             if (array[i] == "") {
               array[i] = "O";
-              let score = minimax(array, depth + 1, false);
+              let score = minimax(array, depth + 1, false) - depth;
               bestScore = Math.max(score, bestScore);
               GameBoard.openSpotsArray[i] = "";
             }
           }
           return bestScore;
-        } else if (!isMaximizing) {
+        } else {
           //users turn
           let bestScore = Infinity;
           for (let i = 0; i < 9; i++) {
             if (array[i] == "") {
               array[i] = "X";
-              let score = minimax(array, depth + 1, true);
+              let score = minimax(array, depth + 1, true) + depth;
               bestScore = Math.min(score, bestScore);
               GameBoard.openSpotsArray[i] = "";
             }
@@ -445,6 +467,7 @@ function main() {
 
           //return true -> which will mean to clear the screen and keep scores
           keepPlaying = true;
+          gameOver = false;
 
           for (let i = 1; i <= 9; i++) {
             let currCellId = "cell" + i;
@@ -493,6 +516,8 @@ function main() {
 
           //return true -> which will mean to clear the screen and keep scores
           keepPlaying = true;
+
+          gameOver = false;
 
           for (let i = 1; i <= 9; i++) {
             let currCellId = "cell" + i;
@@ -739,7 +764,7 @@ function main() {
   GameBoard.setUpDisplay(gamePlay.placeMarker);
 }
 
-function createDisplay(placeMarkerFunction) {
+function createDisplay(placeMarker) {
   let setUpDisplay = (function () {
     let body = document.querySelector("body");
 
@@ -787,7 +812,7 @@ function createDisplay(placeMarkerFunction) {
         currentCell.classList.add("cellProperties");
 
         currentCell.addEventListener("click", () => {
-          placeMarkerFunction(currentCell.id, player1, player2, isComputer);
+          placeMarker(currentCell.id, player1, player2, isComputer);
         });
 
         container.appendChild(currentCell);
