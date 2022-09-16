@@ -8,4 +8,4 @@ Tic-tac-toe game with multi-player options:
     (iii) Hard
     (iv)  Unbeatable
     
-[Live Demo](dylanperera.github.io/tic-tac-toe) :point_left:
+[Live Demo](dylanperera.github.io/Tic_Tac_Toe) :point_left:
